@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import sqlite3 as sq
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, simpledialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 def set_chinese_font():
@@ -26,10 +26,6 @@ def plot_chart(df, chart_type, x_column, y_column, x_interval, y_interval):
     set_chinese_font()
     fig, ax = plt.subplots()
 
-    if x_column == 'Date':
-        df[x_column] = pd.to_datetime(df[x_column], format='%m月%d日', errors='coerce')
-        df = df.dropna(subset=[x_column])
-
     if chart_type == "折线图":
         ax.plot(df[x_column], df[y_column], marker='o', label=y_column)
         ax.set_title('Line Chart')
@@ -43,7 +39,13 @@ def plot_chart(df, chart_type, x_column, y_column, x_interval, y_interval):
         ax.hist(df[y_column], bins=10, alpha=0.5, label=y_column)
         ax.set_title('Histogram')
     elif chart_type == "圆饼图":
-        ax.pie(df[y_column], labels=df[x_column], autopct='%1.1f%%')
+        pie_columns = simpledialog.askstring("选择列", "请输入要绘制圆饼图的列名（用逗号分隔）：")
+        if not pie_columns:
+            return
+        pie_columns = pie_columns.split(',')
+        pie_labels = df[pie_columns[0]].values
+        pie_values = df[pie_columns[1]].values
+        ax.pie(pie_values, labels=pie_labels, autopct='%1.1f%%')
         ax.set_title('Pie Chart')
 
     ax.legend()
@@ -66,7 +68,17 @@ def load_excel_file():
         global sheet_names
 
         file_name = os.path.basename(filepath)
-        data = pd.read_excel(filepath, sheet_name=None, index_col=0)
+
+        # 读取Excel文件的前几行，以便用户选择变量名行
+        
+        temp_data = pd.read_excel(filepath, sheet_name=None, nrows=10)
+        
+        sheet_names = list(temp_data.keys())
+        header_row = simpledialog.askinteger("选择变量名行", "请输入变量名行的编号（从1开始）：", minvalue=1, maxvalue=10)
+        if not header_row:
+            return
+        
+        data = pd.read_excel(filepath, sheet_name=None, header=header_row-1)
 
         for sheet in data:
             data[sheet] = data[sheet].dropna(how='all')
@@ -83,6 +95,10 @@ def load_excel_file():
         messagebox.showinfo("加载成功", f"成功加载Excel文件：{filepath}")
     except Exception as e:
         messagebox.showerror("加载失败", f"无法加载Excel文件：{str(e)}")
+
+def calculate_and_show_correlation(df, x_column, y_column):
+    correlation = df[x_column].corr(df[y_column])
+    messagebox.showinfo("相关系数", f"{x_column} 和 {y_column} 之间的相关系数是: {correlation:.2f}")
 
 def update_column_menus(*args):
     sheet_name = selected_sheet.get()
@@ -106,11 +122,15 @@ def plot_selected_chart():
 
     df = data[sheet_name]
 
-    # print(f"选中的工作表: {sheet_name}")
-    # print(f"选中的X轴数据列: {x_column}")
-    # print(f"选中的Y轴数据列: {y_column}")
-    # print(f"数据预览:\n{df[[x_column, y_column]].head()}")
-    # print(f"数据类型:\n{df.dtypes}")
+    print(f"选中的工作表: {sheet_name}")
+    print(f"选中的X轴数据列: {x_column}")
+    print(f"选中的Y轴数据列: {y_column}")
+    print(f"数据预览:\n{df[[x_column, y_column]].head()}")
+    print(f"数据类型:\n{df.dtypes}")
+
+    if chart_type == "相關係數":
+        calculate_and_show_correlation(df, x_column, y_column)
+        return
 
     fig = plot_chart(df, chart_type, x_column, y_column, x_interval, y_interval)
     if fig:
@@ -149,7 +169,7 @@ selected_sheet = tk.StringVar(root)
 sheet_menu = tk.OptionMenu(root, selected_sheet, "")
 
 chart_label = tk.Label(root, text="选择图表类型：")
-chart_options = ["折线图", "点状图", "柱状图", "直方图", "圆饼图"]
+chart_options = ["折线图", "点状图", "柱状图", "直方图", "圆饼图", "相關係數"]
 selected_chart = tk.StringVar(root)
 selected_chart.set(chart_options[0])
 chart_menu = tk.OptionMenu(root, selected_chart, *chart_options)
