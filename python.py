@@ -6,14 +6,18 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+# 設置中文字體
 def set_chinese_font():
     import matplotlib.font_manager as fm
     font_paths = [
-        "C:/Windows/Fonts/msjh.ttc",
-        "C:/Windows/Fonts/msjh.ttf",
-        "C:/Windows/Fonts/msjhl.ttc",
-        "C:/Windows/Fonts/msjhl.ttf",
-        "C:/Windows/Fonts/微軟正黑體.ttf"
+        "./msjh.ttc",
+        "./msjhl.ttc",
+        "./msjhbd.ttc"
+        # "C:/Windows/Fonts/msjh.ttc",
+        # "C:/Windows/Fonts/msjh.ttf",
+        # "C:/Windows/Fonts/msjhl.ttc",
+        # "C:/Windows/Fonts/msjhl.ttf",
+        # "C:/Windows/Fonts/微軟正黑體.ttf"
     ]
     for font_path in font_paths:
         if os.path.exists( font_path ):
@@ -22,9 +26,12 @@ def set_chinese_font():
             return
     raise FileNotFoundError( "無法找到'微軟正黑體'字體" )
 
-def plot_chart( df , chart_type , x_column , y_column , x_interval , y_interval ):
+# 選擇要畫的圖表
+def plot_chart( df , chart_type , x_column , y_column , x_interval , y_interval , start_row , end_row ):
     set_chinese_font()
     fig , ax = plt.subplots()
+
+    df = df.iloc[start_row:end_row]
 
     if chart_type == "折線圖":
         ax.plot( df[x_column] , df[y_column] , marker = "o" , label = y_column )
@@ -77,8 +84,9 @@ def plot_chart( df , chart_type , x_column , y_column , x_interval , y_interval 
 
     return fig
 
+# 載入excel檔案
 def load_excel_file():
-    filepath = filedialog.askopenfilename( filetypes = [( "Excel files" , "*.xlsx *.xls" )] )
+    filepath = filedialog.askopenfilename( filetypes = [( "Excel files" , "*.xlsx *.xls " )] )
     if not filepath:
         return
     try:
@@ -88,6 +96,7 @@ def load_excel_file():
 
         file_name = os.path.basename( filepath )
 
+        
         # 先讀取Excel檔案的前幾列，讓使用者選擇資料從第幾列開始
         temp_data = pd.read_excel( filepath , sheet_name = None , nrows = 10 )
         
@@ -96,15 +105,13 @@ def load_excel_file():
         if not header_row:
             return
         
+        
         # 讀取所有檔案中的工作表
-        data = pd.read_excel( filepath , sheet_name = None , header = header_row-1 )
+        data = pd.read_excel( filepath , sheet_name = None , header = header_row - 1 )
         for sheet in data:
             # 刪除空白行、列
             data[sheet].dropna( how = "all" , inplace = True )
-            data[sheet].dropna( axis=1 , how = "all" , inplace = True )
-
-        for sheet in data:
-            data[sheet] = data[sheet].dropna( how = "all" )
+            data[sheet].dropna( axis = 1 , how = "all" , inplace = True )
 
         sheet_names = list( data.keys() )
 
@@ -142,6 +149,8 @@ def plot_selected_chart():
     y_column = selected_y_column.get()
     x_interval = float( x_interval_entry.get() ) if x_interval_entry.get() else 1
     y_interval = float( y_interval_entry.get() ) if y_interval_entry.get() else 1
+    start_row = int( start_row_entry.get() ) if start_row_entry.get() else 0
+    end_row = int( end_row_entry.get() ) if end_row_entry.get() else len( data[sheet_name] )
 
     df = data[sheet_name]
 
@@ -149,7 +158,7 @@ def plot_selected_chart():
         calculate_and_show_correlation( df , x_column , y_column )
         return
 
-    fig = plot_chart( df , chart_type , x_column , y_column , x_interval , y_interval )
+    fig = plot_chart( df , chart_type , x_column , y_column , x_interval , y_interval , start_row , end_row )
     if fig:
         global canvas
         if canvas:
@@ -172,6 +181,10 @@ def create_layout():
     x_interval_entry.grid( row = 1 , column = 1 , padx = 5 , pady = 5 , sticky = "w" )
     y_interval_label.grid( row = 1 , column = 2 , padx = 5 , pady = 5 , sticky = "w" )
     y_interval_entry.grid( row = 1 , column = 3 , padx = 5 , pady = 5 , sticky = "w" )
+    start_row_label.grid( row = 1 , column = 4 , padx = 5 , pady = 5 , sticky = 'w' )
+    start_row_entry.grid( row = 1 , column = 5 , padx = 5 , pady = 5 , sticky = 'w' )
+    end_row_label.grid( row = 1 , column = 6 , padx = 5 , pady = 5 , sticky = 'w' )
+    end_row_entry.grid( row = 1 , column = 7 , padx = 5 , pady = 5 , stick = 'w' )
     plot_button.grid( row = 2 , column = 0 , columnspan = 6 , pady = 10 , sticky = "we" )
     database_button.grid( row = 2 , column = 6 , columnspan = 3 , pady = 10 , sticky = "we" )
 
@@ -220,6 +233,13 @@ x_interval_entry = tk.Entry( root )
 
 y_interval_label = tk.Label( root , text = "Y軸單位刻度：" )
 y_interval_entry = tk.Entry( root )
+
+start_row_label = tk.Label( root , text = "設定開頭：" )
+start_row_entry = tk.Entry( root )
+
+end_row_label = tk.Label( root , text = "設定結尾：" )
+end_row_entry = tk.Entry( root )
+
 
 plot_button = tk.Button( root , text = "繪製圖表" , command = plot_selected_chart )
 
