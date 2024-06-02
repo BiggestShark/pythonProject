@@ -35,18 +35,37 @@ def plot_chart(df, chart_type, x_column, y_column, x_interval, y_interval):
     elif chart_type == "柱状图":
         ax.bar(df[x_column], df[y_column], label=y_column)
         ax.set_title('Bar Chart')
-    elif chart_type == "直方图":
-        ax.hist(df[y_column], bins=10, alpha=0.5, label=y_column)
-        ax.set_title('Histogram')
     elif chart_type == "圆饼图":
-        pie_columns = simpledialog.askstring("选择列", "请输入要绘制圆饼图的列名（用逗号分隔）：")
-        if not pie_columns:
-            return
-        pie_columns = pie_columns.split(',')
-        pie_labels = df[pie_columns[0]].values
-        pie_values = df[pie_columns[1]].values
-        ax.pie(pie_values, labels=pie_labels, autopct='%1.1f%%')
-        ax.set_title('Pie Chart')
+        pie_columns_window = tk.Toplevel(root)
+        pie_columns_window.title("选择圆饼图列")
+
+        tk.Label(pie_columns_window, text="选择标签列:").grid(row=0, column=0, padx=5, pady=5)
+        tk.Label(pie_columns_window, text="选择数值列:").grid(row=1, column=0, padx=5, pady=5)
+
+        label_column = tk.StringVar(pie_columns_window)
+        value_column = tk.StringVar(pie_columns_window)
+        
+        label_menu = tk.OptionMenu(pie_columns_window, label_column, *df.columns)
+        value_menu = tk.OptionMenu(pie_columns_window, value_column, *df.columns)
+        
+        label_menu.grid(row=0, column=1, padx=5, pady=5)
+        value_menu.grid(row=1, column=1, padx=5, pady=5)
+
+        def plot_pie_chart():
+            try:
+                pie_labels = df[label_column.get()].values
+                pie_values = df[value_column.get()].values
+                ax.clear()
+                ax.pie(pie_values, labels=pie_labels, autopct='%1.1f%%')
+                ax.set_title('Pie Chart')
+                canvas.draw()
+                pie_columns_window.destroy()
+            except KeyError as e:
+                messagebox.showerror("错误", f"无效的列名: {e}")
+            except Exception as e:
+                messagebox.showerror("错误", f"绘制圆饼图时发生错误: {e}")
+
+        tk.Button(pie_columns_window, text="绘制圆饼图", command=plot_pie_chart).grid(row=2, column=0, columnspan=2, pady=10)
 
     ax.legend()
     ax.grid(True)
@@ -169,7 +188,7 @@ selected_sheet = tk.StringVar(root)
 sheet_menu = tk.OptionMenu(root, selected_sheet, "")
 
 chart_label = tk.Label(root, text="选择图表类型：")
-chart_options = ["折线图", "点状图", "柱状图", "直方图", "圆饼图", "相關係數"]
+chart_options = ["折线图", "点状图", "柱状图", "圆饼图", "相關係數"]
 selected_chart = tk.StringVar(root)
 selected_chart.set(chart_options[0])
 chart_menu = tk.OptionMenu(root, selected_chart, *chart_options)
