@@ -1,4 +1,4 @@
-import pandas as pd
+import pandas as pd # 讀取excel
 import matplotlib.pyplot as plt
 import os
 import sqlite3 as sq
@@ -21,17 +21,17 @@ def set_chinese_font():
     ]
     for font_path in font_paths:
         if os.path.exists( font_path ):
-            msjh_font = fm.FontProperties( fname = font_path )
-            plt.rcParams["font.family"] = msjh_font.get_name()
+            msjh_font = fm.FontProperties( fname = font_path ) # FontProperties是字體屬性 , fname是字體檔案名
+            plt.rcParams["font.family"] = msjh_font.get_name() # 將matplotlib的圖表預設字體改為微軟正黑體
             return
     raise FileNotFoundError( "無法找到'微軟正黑體'字體" )
 
 # 選擇要畫的圖表
 def plot_chart( df , chart_type , x_column , y_column , x_interval , y_interval , start_row , end_row ):
     set_chinese_font()
-    fig , ax = plt.subplots()
+    fig , ax = plt.subplots() # 建立一個圖形和子圖
 
-    df = df.iloc[start_row:end_row]
+    df = df.iloc[start_row:end_row] # 指定開頭和結尾
 
     if chart_type == "折線圖":
         ax.plot( df[x_column] , df[y_column] , marker = "o" , label = y_column )
@@ -185,8 +185,9 @@ def create_layout():
     start_row_entry.grid( row = 1 , column = 5 , padx = 5 , pady = 5 , sticky = 'w' )
     end_row_label.grid( row = 1 , column = 6 , padx = 5 , pady = 5 , sticky = 'w' )
     end_row_entry.grid( row = 1 , column = 7 , padx = 5 , pady = 5 , stick = 'w' )
-    plot_button.grid( row = 2 , column = 0 , columnspan = 6 , pady = 10 , sticky = "we" )
-    database_button.grid( row = 2 , column = 6 , columnspan = 3 , pady = 10 , sticky = "we" )
+    plot_button.grid( row = 2 , column = 0 , columnspan = 3 , pady = 10 , sticky = "we" )
+    database_button.grid( row = 2 , column = 3 , columnspan = 3 , pady = 10 , sticky = "we" )
+    screenshot_button.grid( row = 2 , column = 6 , columnspan = 3 , pady = 10 , sticky = "we" )
 
 def save_to_database():
     try:
@@ -199,9 +200,20 @@ def save_to_database():
         for sheet_name , df in data.items():
             df.to_sql( sheet_name , conn , if_exists = "replace" , index = False )
         conn.close()
-        messagebox.showinfo( "儲存成功" , f"資料已儲存在資料庫：{db_path}")
+        messagebox.showinfo( "儲存成功" , f"資料已儲存在資料庫：{db_path}" )
     except Exception as e:
         messagebox.showerror( "儲存失敗" )
+
+def screenshot():
+    try:
+        file_name2 = file_name.strip( ".xlsx" )
+        sheet_name = selected_sheet.get()
+        chart_name = selected_chart.get()
+        screenshot_name = file_name2 + "_" + sheet_name + "_" + chart_name
+        plt.savefig( './{}.jpg'.format( screenshot_name ) , bbox_inches = 'tight' , pad_inches = 1 )
+        messagebox.showinfo( "儲存圖片成功" )
+    except:
+        messagebox.showerror( "儲存圖片失敗" )
 
 root = tk.Tk()
 root.title( "資料視覺化" )
@@ -244,6 +256,8 @@ end_row_entry = tk.Entry( root )
 plot_button = tk.Button( root , text = "繪製圖表" , command = plot_selected_chart )
 
 database_button = tk.Button( root , text = "儲存到資料庫" , command = save_to_database )
+
+screenshot_button = tk.Button( root , text = "儲存圖表" , command = screenshot )
 
 create_layout()
 
